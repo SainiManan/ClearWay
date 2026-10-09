@@ -1,7 +1,14 @@
-﻿.venv/
+.venv/
 venv/
 __pycache__/
 *.py[cod]
 .env
 .pytest_cache/
 .DS_Store
+
+# Local OpenStreetMap Overpass response cache
+data/.cache/
+
+# Tooling directories (not part of the project)
+.agents/
+.claude/

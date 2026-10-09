@@ -6,6 +6,7 @@ silence or a fabricated value.
 """
 
 from src.risk_engine import FACTOR_LABELS
+from src.route_selection import route_letter
 
 MISSING_EXPLANATION = (
     "{label} data unavailable for this route. Nothing was assumed, and this "
@@ -47,6 +48,20 @@ def format_distance(distance_m):
     if distance_m is None:
         return "unknown"
     return f"{float(distance_m) / 1000.0:.2f} km"
+
+
+def scoring_status_text(route_id, index, total):
+    """Progress line shown while a route's indicators are being fetched.
+
+    This is the slowest part of a search (an Overpass query per route), so the
+    line names the route and its position out of the total, and is honest that
+    a network fetch is in progress.
+    """
+    letter = route_letter(route_id)
+    return (
+        f"Assessing route {letter} indicators — fetching mapped pedestrian "
+        f"infrastructure from OpenStreetMap ({index} of {total})…"
+    )
 
 
 def factor_sentences(assessment):

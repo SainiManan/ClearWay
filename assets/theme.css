@@ -320,6 +320,159 @@ button[kind="primary"]:active {
   display: block;
 }
 
+/* Leaflet's default background is white, which flashes before the dark
+   basemap tiles arrive. Painting it the surface colour makes the pre-tile
+   state look deliberate. */
+.leaflet-container {
+  background: var(--cw-surface) !important;
+  font-family: system-ui, sans-serif;
+}
+
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: var(--cw-surface) !important;
+  color: var(--cw-text) !important;
+  border: 1px solid var(--cw-border);
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.5) !important;
+}
+
+.leaflet-popup-content {
+  margin: 12px 16px !important;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.leaflet-tooltip {
+  background: var(--cw-surface-2) !important;
+  border: 1px solid var(--cw-border) !important;
+  color: var(--cw-text) !important;
+  font-size: 12px !important;
+  font-weight: 600;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4) !important;
+}
+
+.leaflet-tooltip::before {
+  border-top-color: var(--cw-border) !important;
+}
+
+.leaflet-control-attribution {
+  background: rgba(19, 28, 46, 0.86) !important;
+  color: #7c8ba4 !important;
+  font-size: 10px !important;
+}
+
+.leaflet-control-attribution a {
+  color: #94a3b8 !important;
+}
+
+.leaflet-bar a {
+  background: var(--cw-surface-2) !important;
+  color: var(--cw-text) !important;
+  border-bottom-color: var(--cw-border) !important;
+}
+
+.leaflet-bar a:hover {
+  background: var(--cw-surface) !important;
+}
+
+/* --------------------------------------------------------------------------
+   Loading states
+   -------------------------------------------------------------------------- */
+
+.cw-spinner {
+  display: inline-block;
+  width: 15px;
+  height: 15px;
+  flex: 0 0 15px;
+  border: 2px solid rgba(245, 165, 36, 0.25);
+  border-top-color: var(--cw-accent);
+  border-radius: 50%;
+  animation: cw-spin 0.7s linear infinite;
+}
+
+.cw-spinner-lg {
+  width: 34px;
+  height: 34px;
+  flex-basis: 34px;
+  border-width: 3px;
+}
+
+@keyframes cw-spin {
+  to { transform: rotate(360deg); }
+}
+
+.cw-loading-row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 13px 17px;
+  margin: 4px 0 14px;
+  border: 1px solid var(--cw-border);
+  border-radius: var(--cw-radius-sm);
+  background: var(--cw-surface);
+  font-size: 0.88rem;
+  color: var(--cw-text);
+}
+
+/* Map pending state: a dark panel with an animated route being drawn, which
+   fades out as the real map arrives. */
+.cw-map-pending {
+  position: relative;
+  height: 540px;
+  border: 1px solid var(--cw-border);
+  border-radius: var(--cw-radius);
+  background:
+    linear-gradient(110deg, rgba(245, 165, 36, 0.05), transparent 45%),
+    var(--cw-surface);
+  overflow: hidden;
+  animation: cw-map-reveal 0.7s ease 0.55s forwards;
+}
+
+@keyframes cw-map-reveal {
+  to { opacity: 0; height: 0; border-width: 0; margin: 0; }
+}
+
+.cw-map-pending-inner {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 11px;
+  text-align: center;
+}
+
+.cw-map-pending-text {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--cw-text);
+}
+
+.cw-map-pending-sub {
+  font-size: 0.82rem;
+  color: var(--cw-muted);
+}
+
+.cw-route-draw {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.cw-route-draw path {
+  stroke-dasharray: 460;
+  stroke-dashoffset: 460;
+  animation: cw-draw 1.1s ease-in-out infinite;
+  filter: drop-shadow(0 0 6px rgba(245, 165, 36, 0.55));
+}
+
+@keyframes cw-draw {
+  0%   { stroke-dashoffset: 460; opacity: 0.25; }
+  50%  { stroke-dashoffset: 90;  opacity: 1; }
+  100% { stroke-dashoffset: -460; opacity: 0.25; }
+}
+
 /* --------------------------------------------------------------------------
    Route cards
    -------------------------------------------------------------------------- */

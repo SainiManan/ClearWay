@@ -18,8 +18,10 @@ from src.data import (
     dataset_summary,
     route_indicators,
 )
-from src.explanations import route_sentences
+from src.explanations import route_sentences, scoring_status_text
 from src.geocoding import GeocodingError, geocode
+from html import escape
+
 from src.risk_engine import assess_route
 from src.route_selection import resolve_selection, route_letter
 from src.routing import RoutingError, get_walking_routes
@@ -186,11 +188,25 @@ with st.spinner("Requesting walking routes..."):
 # ---------------------------------------------------------------------------
 # Indicators and scoring
 # ---------------------------------------------------------------------------
+# This is the slowest step by far. On a cold cache each route needs an
+# OpenStreetMap Overpass query, which measured ~17s for two routes, so it gets
+# a determinate progress bar rather than a bare spinner that looks frozen.
 assessments = {}
 indicators_by_route = {}
 notes_by_route = {}
 
-for route in routes:
+scoring_status = st.empty()
+scoring_bar = st.progress(0.0)
+
+for index, route in enumerate(routes):
+    scoring_status.markdown(
+        f'<div class="cw-loading-row"><span class="cw-spinner"></span>'
+        f"{escape(scoring_status_text(route['route_id'], index + 1, len(routes)))}"
+        f"</div>",
+        unsafe_allow_html=True,
+    )
+    scoring_bar.progress((index + 1) / len(routes))
+
     indicators, notes = route_indicators(route)
     assessment = assess_route(indicators)
     assessment["sentences"] = route_sentences(route, assessment)
@@ -207,11 +223,35 @@ for route in routes:
     route["indicators"] = indicators
     route["explanation"] = assessment["sentences"]
 
+scoring_bar.empty()
+scoring_status.empty()
+
 # ---------------------------------------------------------------------------
 # Map
 # ---------------------------------------------------------------------------
 st.markdown('<div class="cw-section-title">Route map</div>',
             unsafe_allow_html=True)
+
+# A pending state while the map is built and its tiles load. The animation is
+# CSS-driven and self-terminating, so it can never get stuck showing after the
+# map has arrived.
+st.markdown(
+    """
+    <div class="cw-map-pending">
+        <div class="cw-map-pending-inner">
+            <div class="cw-spinner cw-spinner-lg"></div>
+            <div class="cw-map-pending-text">Building the map…</div>
+            <div class="cw-map-pending-sub">Fetching basemap tiles</div>
+        </div>
+        <svg class="cw-route-draw" viewBox="0 0 320 120" preserveAspectRatio="none">
+            <path d="M8 96 C 70 96, 62 30, 128 34 S 214 108, 312 22"
+                  fill="none" stroke="#f5a524" stroke-width="3"
+                  stroke-linecap="round" />
+        </svg>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 # A new search invalidates any previous map click, because st_folium keeps
 # returning the last click until the user clicks again.

@@ -22,6 +22,7 @@ from src.explanations import (
     format_distance,
     format_minutes,
     route_sentences,
+    scoring_status_text,
 )
 from src.risk_engine import FACTOR_LABELS, FACTOR_WEIGHTS, assess_route
 
@@ -397,3 +398,30 @@ def test_simulated_template_fills_every_placeholder():
     assert "{" not in formatted
     assert "42/100" in formatted
     assert "detail text" in formatted
+
+
+# ---------------------------------------------------------------------------
+# Loading progress line
+# ---------------------------------------------------------------------------
+@pytest.mark.parametrize(
+    "route_id,index,total",
+    [("route_a", 1, 1), ("route_a", 1, 2), ("route_b", 2, 2), ("route_c", 3, 3)],
+)
+def test_scoring_status_names_route_and_position(route_id, index, total):
+    text = scoring_status_text(route_id, index, total)
+    assert f"({index} of {total})" in text
+    assert "Assessing route" in text
+
+
+def test_scoring_status_says_a_fetch_is_happening():
+    """It must not imply the result is ready, nor that anything is instant."""
+    text = scoring_status_text("route_a", 1, 2)
+    assert "OpenStreetMap" in text
+    assert "…" in text
+    for forbidden in ("done", "complete", "safe", "score"):
+        assert forbidden not in text.lower()
+
+
+def test_scoring_status_has_no_template_braces_left():
+    text = scoring_status_text("route_a", 1, 2)
+    assert "{" not in text and "}" not in text

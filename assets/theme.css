@@ -1,0 +1,636 @@
+/* ==========================================================================
+   ClearWay — custom stylesheet.
+
+   Loaded by src/theme.py and injected into the Streamlit page. The base dark
+   theme comes from .streamlit/config.toml; this file adds the parts Streamlit
+   gives no control over: the hero, the search panel, metric rows, risk chips
+   and spacing rhythm.
+
+   Selectors deliberately use Streamlit's stable data-testid attributes rather
+   than private generated class names, which change between versions.
+   ========================================================================== */
+
+:root {
+  --cw-bg: #0a0f1c;
+  --cw-surface: #131c2e;
+  --cw-surface-2: #1a2540;
+  --cw-border: #22304a;
+  --cw-text: #e8eefb;
+  --cw-muted: #94a3b8;
+  --cw-accent: #f5a524;
+  --cw-accent-soft: rgba(245, 165, 36, 0.14);
+
+  --cw-low: #22c55e;
+  --cw-moderate: #f59e0b;
+  --cw-high: #ef4444;
+
+  --cw-radius: 14px;
+  --cw-radius-sm: 9px;
+}
+
+/* --------------------------------------------------------------------------
+   Page shell
+   -------------------------------------------------------------------------- */
+
+[data-testid="stAppViewContainer"] {
+  background:
+    radial-gradient(1100px 520px at 12% -8%, rgba(245, 165, 36, 0.10), transparent 60%),
+    radial-gradient(900px 480px at 92% 0%, rgba(56, 132, 255, 0.12), transparent 62%),
+    var(--cw-bg);
+  background-attachment: fixed;
+}
+
+[data-testid="stMainBlockContainer"] {
+  max-width: 1180px;
+  padding-top: 2.5rem;
+  padding-bottom: 4rem;
+}
+
+/* Hide Streamlit's own toolbar/menu chrome for a cleaner demo. */
+[data-testid="stToolbar"],
+#MainMenu {
+  visibility: hidden;
+}
+
+[data-testid="stHeader"] {
+  background: transparent;
+}
+
+/* --------------------------------------------------------------------------
+   Hero
+   -------------------------------------------------------------------------- */
+
+.cw-hero {
+  position: relative;
+  overflow: hidden;
+  padding: 30px 34px;
+  margin-bottom: 26px;
+  border: 1px solid var(--cw-border);
+  border-radius: 20px;
+  background:
+    linear-gradient(135deg, rgba(245, 165, 36, 0.13), rgba(56, 132, 255, 0.09) 55%, transparent),
+    var(--cw-surface);
+}
+
+.cw-hero::after {
+  /* Faint starfield, so the night theme reads as intentional. */
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image:
+    radial-gradient(1.4px 1.4px at 18% 28%, rgba(255, 255, 255, 0.55), transparent 100%),
+    radial-gradient(1.2px 1.2px at 72% 18%, rgba(255, 255, 255, 0.42), transparent 100%),
+    radial-gradient(1.6px 1.6px at 88% 62%, rgba(255, 255, 255, 0.35), transparent 100%),
+    radial-gradient(1.1px 1.1px at 42% 74%, rgba(255, 255, 255, 0.30), transparent 100%),
+    radial-gradient(1.3px 1.3px at 58% 42%, rgba(255, 255, 255, 0.22), transparent 100%);
+}
+
+.cw-hero-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0;
+  font-size: 2.15rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: var(--cw-text);
+}
+
+.cw-hero-logo {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  flex: 0 0 46px;
+  border-radius: 13px;
+  font-size: 1.35rem;
+  background: linear-gradient(150deg, rgba(245, 165, 36, 0.9), rgba(245, 165, 36, 0.45));
+  box-shadow: 0 6px 18px rgba(245, 165, 36, 0.28);
+}
+
+.cw-hero-tagline {
+  position: relative;
+  margin: 12px 0 0;
+  max-width: 66ch;
+  font-size: 1.02rem;
+  line-height: 1.6;
+  color: var(--cw-muted);
+}
+
+.cw-hero-badges {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.cw-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--cw-border);
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--cw-text);
+}
+
+.cw-badge-accent {
+  border-color: rgba(245, 165, 36, 0.42);
+  background: var(--cw-accent-soft);
+  color: #fcd34d;
+}
+
+.cw-badge-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* --------------------------------------------------------------------------
+   Headings
+   -------------------------------------------------------------------------- */
+
+h1, h2, h3, h4 {
+  color: var(--cw-text) !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.01em;
+}
+
+h2 {
+  font-size: 1.32rem !important;
+  margin-bottom: 0.9rem !important;
+}
+
+h3 {
+  font-size: 1.05rem !important;
+}
+
+.cw-section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 34px 0 16px;
+  font-size: 1.18rem;
+  font-weight: 700;
+  color: var(--cw-text);
+}
+
+.cw-section-title::before {
+  content: "";
+  width: 4px;
+  height: 19px;
+  border-radius: 2px;
+  background: linear-gradient(var(--cw-accent), rgba(245, 165, 36, 0.35));
+}
+
+/* --------------------------------------------------------------------------
+   Form / search panel
+   -------------------------------------------------------------------------- */
+
+[data-testid="stForm"] {
+  padding: 22px 24px 18px;
+  border: 1px solid var(--cw-border);
+  border-radius: var(--cw-radius);
+  background: var(--cw-surface);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+}
+
+.cw-field-label {
+  display: block;
+  margin-bottom: 7px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--cw-muted);
+}
+
+/* Inputs */
+[data-testid="stTextInput"] input,
+[data-testid="stTextInput"] input:focus {
+  height: 46px;
+  padding: 0 14px;
+  border-radius: var(--cw-radius-sm);
+  border: 1px solid var(--cw-border);
+  background: var(--cw-bg);
+  color: var(--cw-text);
+  font-size: 0.95rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+[data-testid="stTextInput"] input::placeholder {
+  color: #64748b;
+}
+
+[data-testid="stTextInput"] input:focus {
+  border-color: rgba(245, 165, 36, 0.65);
+  box-shadow: 0 0 0 3px rgba(245, 165, 36, 0.16);
+  outline: none;
+}
+
+/* Primary button */
+[data-testid="stFormSubmitButton"] button,
+button[kind="primary"] {
+  width: 100%;
+  height: 46px;
+  margin-top: 22px;
+  border: none !important;
+  border-radius: var(--cw-radius-sm) !important;
+  background: linear-gradient(135deg, #f5a524, #e08c0b) !important;
+  color: #1a1206 !important;
+  font-size: 0.98rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.01em;
+  box-shadow: 0 6px 18px rgba(245, 165, 36, 0.24);
+  transition: transform 0.12s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+
+button[kind="primary"]:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(245, 165, 36, 0.32);
+  filter: brightness(1.05);
+}
+
+button[kind="primary"]:active {
+  transform: translateY(0);
+}
+
+/* --------------------------------------------------------------------------
+   Resolved-location chips
+   -------------------------------------------------------------------------- */
+
+.cw-resolved {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 18px 0 6px;
+}
+
+.cw-resolved-item {
+  flex: 1 1 260px;
+  min-width: 0;
+  padding: 11px 15px;
+  border-radius: var(--cw-radius-sm);
+  border: 1px solid var(--cw-border);
+  background: var(--cw-surface);
+  border-left: 3px solid var(--cw-accent);
+}
+
+.cw-resolved-label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--cw-muted);
+  margin-bottom: 3px;
+}
+
+.cw-resolved-value {
+  display: block;
+  font-size: 0.86rem;
+  line-height: 1.45;
+  color: var(--cw-text);
+  word-break: break-word;
+}
+
+/* --------------------------------------------------------------------------
+   Map
+   -------------------------------------------------------------------------- */
+
+.cw-map-frame {
+  padding: 10px;
+  border: 1px solid var(--cw-border);
+  border-radius: var(--cw-radius);
+  background: var(--cw-surface);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.cw-map-frame iframe {
+  border-radius: var(--cw-radius-sm) !important;
+  display: block;
+}
+
+/* --------------------------------------------------------------------------
+   Route cards
+   -------------------------------------------------------------------------- */
+
+[data-testid="stVerticalBlock"] > [data-testid="stContainer"][border="true"] {
+  padding: 4px 0;
+}
+
+.cw-card-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.cw-route-letter {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border-radius: 10px;
+  background: var(--cw-surface-2);
+  border: 1px solid var(--cw-border);
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: var(--cw-accent);
+}
+
+.cw-route-title {
+  font-size: 1.08rem;
+  font-weight: 700;
+  color: var(--cw-text);
+}
+
+.cw-route-sub {
+  font-size: 0.78rem;
+  color: var(--cw-muted);
+}
+
+/* Metrics */
+[data-testid="stMetric"] {
+  padding: 12px 14px;
+  border-radius: var(--cw-radius-sm);
+  border: 1px solid var(--cw-border);
+  background: var(--cw-surface);
+}
+
+[data-testid="stMetricLabel"] {
+  font-size: 0.7rem !important;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cw-muted) !important;
+}
+
+[data-testid="stMetricValue"] {
+  font-size: 1.5rem !important;
+  font-weight: 800 !important;
+  color: var(--cw-text) !important;
+  letter-spacing: -0.02em;
+}
+
+/* Score block */
+.cw-score {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 16px 0 10px;
+}
+
+.cw-score-value {
+  font-size: 2.5rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.cw-score-chip {
+  padding: 4px 11px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border: 1px solid currentColor;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.cw-score-note {
+  font-size: 0.78rem;
+  color: var(--cw-muted);
+}
+
+/* Progress bar */
+[data-testid="stProgress"] > div > div {
+  height: 8px !important;
+  border-radius: 999px !important;
+}
+
+.cw-score-bar {
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--cw-surface-2);
+  margin-bottom: 6px;
+}
+
+.cw-score-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+}
+
+/* Factor rows inside the provenance expander */
+.cw-factor {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid rgba(34, 48, 74, 0.7);
+  font-size: 0.86rem;
+}
+
+.cw-factor:last-child {
+  border-bottom: none;
+}
+
+.cw-factor-name {
+  font-weight: 600;
+  color: var(--cw-text);
+}
+
+.cw-factor-detail {
+  margin-top: 3px;
+  font-size: 0.79rem;
+  line-height: 1.5;
+  color: var(--cw-muted);
+}
+
+.cw-factor-right {
+  flex: 0 0 auto;
+  text-align: right;
+  font-size: 0.86rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.cw-factor-tag {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--cw-border);
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--cw-muted);
+}
+
+/* --------------------------------------------------------------------------
+   Alerts and notices
+   -------------------------------------------------------------------------- */
+
+[data-testid="stAlert"] {
+  border-radius: var(--cw-radius-sm) !important;
+  border: 1px solid var(--cw-border) !important;
+  background: var(--cw-surface) !important;
+}
+
+/* The safety disclaimer is the one thing that must never blend in. */
+.cw-callout {
+  display: flex;
+  gap: 13px;
+  padding: 15px 18px;
+  margin: 22px 0;
+  border-radius: var(--cw-radius-sm);
+  border: 1px solid rgba(245, 165, 36, 0.4);
+  border-left: 4px solid var(--cw-accent);
+  background: var(--cw-accent-soft);
+}
+
+.cw-callout-icon {
+  flex: 0 0 auto;
+  font-size: 1.1rem;
+  line-height: 1.5;
+}
+
+.cw-callout-body {
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: #fde9c8;
+}
+
+.cw-callout-body strong {
+  color: #fcd34d;
+}
+
+/* Provenance lists */
+.cw-list {
+  margin: 6px 0 18px;
+  padding-left: 2px;
+  list-style: none;
+}
+
+.cw-list li {
+  position: relative;
+  padding-left: 20px;
+  margin-bottom: 8px;
+  font-size: 0.87rem;
+  line-height: 1.6;
+  color: var(--cw-text);
+}
+
+.cw-list li::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 0.62em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--cw-accent);
+}
+
+.cw-subhead {
+  margin: 22px 0 10px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cw-accent);
+}
+
+.cw-split {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 22px;
+  margin-top: 6px;
+}
+
+/* --------------------------------------------------------------------------
+   Expanders
+   -------------------------------------------------------------------------- */
+
+[data-testid="stExpander"] {
+  border: 1px solid var(--cw-border) !important;
+  border-radius: var(--cw-radius-sm) !important;
+  background: var(--cw-surface) !important;
+  overflow: hidden;
+}
+
+[data-testid="stExpander"] summary {
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 13px 16px !important;
+  color: var(--cw-text);
+}
+
+[data-testid="stExpander"] summary:hover {
+  background: var(--cw-surface-2);
+}
+
+[data-testid="stExpander"] details > div {
+  padding: 4px 16px 16px !important;
+}
+
+/* --------------------------------------------------------------------------
+   Captions and footer
+   -------------------------------------------------------------------------- */
+
+[data-testid="stCaptionContainer"] {
+  font-size: 0.79rem !important;
+  color: var(--cw-muted) !important;
+  line-height: 1.55;
+}
+
+.cw-footer {
+  margin-top: 34px;
+  padding-top: 18px;
+  border-top: 1px solid var(--cw-border);
+  font-size: 0.79rem;
+  line-height: 1.6;
+  color: var(--cw-muted);
+}
+
+/* --------------------------------------------------------------------------
+   Loading state
+   -------------------------------------------------------------------------- */
+
+[data-testid="stSpinner"] > div {
+  border-color: var(--cw-accent) !important;
+}
+
+/* --------------------------------------------------------------------------
+   Small screens
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 720px) {
+  [data-testid="stMainBlockContainer"] {
+    padding-top: 1.2rem;
+  }
+
+  .cw-hero {
+    padding: 22px 20px;
+  }
+
+  .cw-hero-brand {
+    font-size: 1.7rem;
+  }
+
+  .cw-score-value {
+    font-size: 2rem;
+  }
+}

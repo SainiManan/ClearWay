@@ -1,0 +1,25 @@
+# ClearWay Streamlit configuration.
+# The base dark theme is set here because this is Streamlit's supported way to
+# theme the app; assets/theme.css only adds polish on top of it.
+
+[server]
+headless = true
+
+[theme]
+base = "dark"
+
+# Night-time palette: deep navy surfaces, amber accent, semantic risk colours.
+primaryColor = "#f5a524"
+backgroundColor = "#0a0f1c"
+secondaryBackgroundColor = "#131c2e"
+textColor = "#e8eefb"
+font = "sans serif"
+
+# Rounded, quiet chrome so the custom CSS does not have to fight defaults.
+baseRadius = "0.75rem"
+borderColor = "#22304a"
+showWidgetBorder = true
+showSidebarBorder = false
+
+[browser]
+gatherUsageStats = false

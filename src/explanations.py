@@ -23,6 +23,14 @@ STATUS_WORD = {
     "missing": "unavailable",
 }
 
+# Appended to every comparison so the honest caveat can never be dropped on an
+# early-return path.
+SAFETY_DISCLAIMER = (
+    "Scores are illustrative model estimates. Some indicators are real "
+    "OpenStreetMap data and some are simulated, and coverage is partial. "
+    "A lower score does not mean a route is safe."
+)
+
 
 def format_minutes(duration_s):
     """Format seconds as whole minutes, tolerating None."""
@@ -112,7 +120,8 @@ def comparison_sentences(routes, assessments):
     if len(scored) < 2:
         return [
             "Fewer than two routes received a score, so a comparison of scores "
-            "is not available. Distance and duration are still compared below."
+            "is not available. Distance and duration are still compared below.",
+            SAFETY_DISCLAIMER,
         ]
 
     sentences = []
@@ -157,10 +166,6 @@ def comparison_sentences(routes, assessments):
             + ", so it cannot be placed in this comparison."
         )
 
-    sentences.append(
-        "Scores are illustrative model estimates. Some indicators are real "
-        "OpenStreetMap data and some are simulated, and coverage is partial. "
-        "A lower score does not mean a route is safe."
-    )
+    sentences.append(SAFETY_DISCLAIMER)
 
     return sentences

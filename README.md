@@ -14,6 +14,9 @@ Built for PS1 (Safe Route Finder for Night Travel) of the OFFGRID hackathon at M
 4. It scores each route on the indicators that have data, and states clearly
    which indicators have none.
 5. It explains the trade-off between routes.
+6. You can focus a route by clicking it on the map, or with the focus control
+   directly beneath the map (clicking a 5px line on a touchscreen is unreliable,
+   so both paths set the same selection).
 
 ## Honest data status
 
@@ -65,6 +68,26 @@ queried twice.
 - No score is produced unless at least 50% of the total scoring weight is
   backed by real data. Otherwise the app says why.
 - An absence of hazard reports is not evidence that a route is safe.
+
+## Design
+
+Two layers, deliberately separated:
+
+1. **`.streamlit/config.toml`** sets the base dark theme. This is Streamlit's
+   supported theming mechanism, so the app looks coherent without fighting
+   Streamlit's own defaults.
+2. **`assets/theme.css`** adds the parts Streamlit gives no control over — the
+   hero, the search panel, metric rows, risk chips, provenance lists and
+   spacing. It is injected once by `src/theme.load_theme()`.
+
+The stylesheet uses Streamlit's stable `data-testid` attributes rather than
+generated class names, which change between releases. A missing stylesheet is
+non-fatal: the app falls back to the config theme alone.
+
+The map uses a dark Esri basemap (`World_Dark_Gray_Canvas`, no API key) so the
+route colours stay readable and the map matches the rest of the UI.
+CartoDB `dark_matter` was tried first but now requires an API key, which would
+have silently rendered a blank map.
 
 ## Setup
 
@@ -125,6 +148,10 @@ clearway/
 ├── .env.example
 ├── .gitignore
 ├── README.md
+├── .streamlit/
+│   └── config.toml              # base dark theme (Streamlit's supported way)
+├── assets/
+│   └── theme.css                # custom polish injected by src/theme.py
 ├── src/
 │   ├── risk_engine.py            # scoring, coverage, missing-data handling
 │   ├── geocoding.py              # OpenStreetMap Nominatim
@@ -142,6 +169,9 @@ clearway/
 └── tests/
     ├── test_risk_engine.py       # scoring, validation, coverage
     ├── test_routing.py           # geocoding/routing, mocked API failures
+    ├── test_data.py              # region gating, coverage, missing data
+    ├── test_explanations.py      # user-facing wording
+    ├── test_route_selection.py   # click parsing, stale-click guard
     └── test_osm_data.py          # pedestrian infra, mocked Overpass
 ```
 

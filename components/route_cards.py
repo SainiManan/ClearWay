@@ -1,18 +1,145 @@
-"""Route comparison cards rendered in Streamlit."""
+"""Route comparison cards rendered in Streamlit.
+
+Visual structure is driven by classes in assets/theme.css so the styling can
+change without touching this logic.
+"""
 
 import streamlit as st
 
 from src.explanations import comparison_sentences, format_distance, format_minutes
 
 RISK_COLOURS = {
-    "Lower estimated risk": "#2e7d32",
-    "Moderate estimated risk": "#ef6c00",
-    "Higher estimated risk": "#c62828",
+    "Lower estimated risk": "var(--cw-low)",
+    "Moderate estimated risk": "var(--cw-moderate)",
+    "Higher estimated risk": "var(--cw-high)",
+}
+
+FALLBACK_COLOUR = "var(--cw-muted)"
+
+STATUS_TAG = {
+    "observed": "real data",
+    "simulated": "simulated",
+    "estimated": "estimated",
+    "missing": "unavailable",
 }
 
 
 def _route_letter(route_id):
     return route_id.split("_")[-1].upper()
+
+
+def render_route_selector(routes, selected_id):
+    """A native control that mirrors map clicks.
+
+    Clicking a 5px line on a touchscreen is unreliable, so the map click and
+    this control both set the same selection. Returns the chosen route id.
+    """
+    if not routes:
+        return selected_id
+
+    labels = [f"Route {_route_letter(route['route_id'])}" for route in routes]
+    index = 0
+    for position, route in enumerate(routes):
+        if route["route_id"] == selected_id:
+            index = position
+            break
+
+    choice = st.radio(
+        "Focus a route",
+        labels,
+        index=index,
+        horizontal=True,
+        label_visibility="collapsed",
+    )
+    return routes[labels.index(choice)]["route_id"]
+
+
+def _escape(text):
+    """Minimal HTML escaping for values interpolated into markup."""
+    return (
+        str(text)
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+    )
+
+
+def _score_block(score, assessment):
+    """Render the score, its colour chip and a coverage bar."""
+    if score is None:
+        return f"""
+        <div class="cw-callout" style="margin:14px 0 0;">
+            <span class="cw-callout-icon">🚫</span>
+            <div class="cw-callout-body">
+                No risk score was calculated.
+                {_escape(assessment.get('withheld_reason') or '')}
+            </div>
+        </div>
+        """
+
+    label = assessment.get("label") or ""
+    colour = RISK_COLOURS.get(label, FALLBACK_COLOUR)
+    provisional = " (provisional)" if assessment.get("provisional") else ""
+    coverage = assessment.get("coverage", 0.0)
+
+    return f"""
+    <div class="cw-score">
+        <span class="cw-score-value" style="color:{colour};">{score:.1f}</span>
+        <span class="cw-score-chip" style="color:{colour};">{_escape(label)}</span>
+        <span class="cw-score-note">out of 100{provisional}</span>
+    </div>
+    <div class="cw-score-bar">
+        <div class="cw-score-bar-fill"
+             style="width:{min(max(score, 0.0), 100.0):.1f}%;background:{colour};"></div>
+    </div>
+    <div style="font-size:0.79rem;color:var(--cw-muted);">
+        Data coverage {coverage:.0%} of the total scoring weight —
+        {_escape(assessment.get('coverage_label', 'unknown'))}.
+    </div>
+    """
+
+
+def _factor_rows(assessment):
+    """One row per scoring factor, with provenance and a status tag."""
+    rows = []
+    for detail in assessment.get("factors", {}).values():
+        value = detail.get("value")
+        label = _escape(detail.get("label", ""))
+        tag = STATUS_TAG.get(detail.get("status"), "unavailable")
+
+        if value is None:
+            right = (
+                f'<div class="cw-factor-right" style="color:var(--cw-muted);">'
+                f"unavailable</div>"
+            )
+            body = (
+                f'<div class="cw-factor-name">{label}</div>'
+                f'<div class="cw-factor-detail">'
+                f"{_escape(detail.get('detail') or '')}</div>"
+            )
+        else:
+            colour = (
+                "var(--cw-low)"
+                if value < 30
+                else "var(--cw-moderate)" if value < 60 else "var(--cw-high)"
+            )
+            right = (
+                f'<div class="cw-factor-right" style="color:{colour};">'
+                f"{value:.0f}/100</div>"
+                f'<div class="cw-factor-tag">{tag}</div>'
+            )
+            body = (
+                f'<div class="cw-factor-name">{label}</div>'
+                f'<div class="cw-factor-detail">'
+                f"Model weight {detail.get('weight', 0):.0%}. "
+                f"{_escape(detail.get('detail') or '')}</div>"
+            )
+
+        rows.append(
+            f'<div class="cw-factor"><div>{body}</div>{right}</div>'
+        )
+
+    return "".join(rows)
 
 
 def render_route_cards(routes, assessments, indicators_by_route, selected_id=None):
@@ -24,78 +151,68 @@ def render_route_cards(routes, assessments, indicators_by_route, selected_id=Non
     for route in routes:
         route_id = route["route_id"]
         assessment = assessments.get(route_id, {})
-        indicators = indicators_by_route.get(route_id, {})
         letter = _route_letter(route_id)
+        score = assessment.get("score")
+        is_selected = route_id == selected_id
 
         with st.container(border=True):
-            header_cols = st.columns([3, 2, 2])
-
-            with header_cols[0]:
-                st.markdown(f"### Route {letter}")
-
-            with header_cols[1]:
-                distance = route.get("distance_m")
-                st.metric(
-                    "Distance",
-                    format_distance(distance),
-                )
-
-            with header_cols[2]:
-                duration = route.get("duration_s")
-                st.metric(
-                    "Walking time",
-                    format_minutes(duration),
-                )
-
-            score = assessment.get("score")
-            coverage = assessment.get("coverage", 0.0)
-
-            if score is None:
-                st.warning(
-                    "No risk score was calculated. "
-                    + (assessment.get("withheld_reason") or "")
-                )
-            else:
-                label = assessment.get("label") or ""
-                colour = RISK_COLOURS.get(label, "#555555")
-                provisional = " (provisional)" if assessment.get("provisional") else ""
+            if is_selected:
                 st.markdown(
-                    f"<div style='display:flex;align-items:baseline;gap:10px;'>"
-                    f"<span style='font-size:30px;font-weight:700;color:{colour};'>"
-                    f"{score:.1f}</span>"
-                    f"<span style='color:{colour};font-weight:600;'>{label}</span>"
-                    f"<span style='color:#777;'>out of 100{provisional}</span>"
-                    f"</div>",
+                    '<style>[data-testid="stVerticalBlock"] > '
+                    '[data-testid="stContainer"][border="true"]:has(.cw-selected-badge)'
+                    "{border-color:var(--cw-accent);box-shadow:0 0 0 1px "
+                    "rgba(245,165,36,0.35);}</style>",
                     unsafe_allow_html=True,
                 )
-                st.progress(min(max(score / 100.0, 0.0), 1.0))
+                st.markdown("<span class='cw-selected-badge'></span>",
+                            unsafe_allow_html=True)
 
-            st.caption(
-                f"Data coverage: {coverage:.0%} of the total scoring weight — "
-                f"{assessment.get('coverage_label', 'unknown')}."
+            # Header: route letter badge plus the selected marker.
+            selected_note = (
+                '<span class="cw-badge cw-badge-accent" style="margin-left:auto;">'
+                "Focused</span>"
+                if is_selected
+                else ""
+            )
+            st.markdown(
+                f"""
+                <div class="cw-card-head">
+                    <span class="cw-route-letter">{letter}</span>
+                    <span>
+                        <span class="cw-route-title">Route {letter}</span><br>
+                        <span class="cw-route-sub">{_escape(
+                            route.get("provider", "routing service")
+                        )}</span>
+                    </span>
+                    {selected_note}
+                </div>
+                """,
+                unsafe_allow_html=True,
             )
 
+            metric_cols = st.columns(2)
+            with metric_cols[0]:
+                st.metric("Distance", format_distance(route.get("distance_m")))
+            with metric_cols[1]:
+                st.metric("Walking time", format_minutes(route.get("duration_s")))
+
+            st.markdown(_score_block(score, assessment), unsafe_allow_html=True)
+
             with st.expander("Why this route received its assessment", expanded=False):
-                for sentence in assessment.get("sentences", []):
-                    st.markdown(f"- {sentence}")
+                st.markdown(
+                    '<ul class="cw-list">'
+                    + "".join(
+                        f"<li>{_escape(sentence)}</li>"
+                        for sentence in assessment.get("sentences", [])
+                    )
+                    + "</ul>",
+                    unsafe_allow_html=True,
+                )
 
             with st.expander("Indicator detail and data provenance", expanded=False):
-                for factor, detail in assessment.get("factors", {}).items():
-                    value = detail.get("value")
-                    status = detail.get("status", "missing")
-
-                    if value is None:
-                        st.markdown(
-                            f"- **{detail['label']}** — data unavailable. "
-                            f"{detail.get('detail') or ''}"
-                        )
-                    else:
-                        st.markdown(
-                            f"- **{detail['label']}** — {value:.0f}/100 "
-                            f"({status}). Model weight "
-                            f"{detail.get('weight', 0):.0%}. "
-                            f"{detail.get('detail') or ''}"
-                        )
+                st.markdown(
+                    _factor_rows(assessment), unsafe_allow_html=True
+                )
 
                 missing = assessment.get("missing_factors") or []
                 if missing:
@@ -109,7 +226,7 @@ def render_route_cards(routes, assessments, indicators_by_route, selected_id=Non
                     )
 
             if route.get("provider_note"):
-                st.caption(f"Routing note: {route['provider_note']}")
+                st.caption(f"Routing note: {_escape(route['provider_note'])}")
 
 
 def render_comparison(routes, assessments):
@@ -121,5 +238,9 @@ def render_comparison(routes, assessments):
         sentences = comparison_sentences(
             routes, [assessments[route["route_id"]] for route in routes]
         )
-        for sentence in sentences:
-            st.markdown(f"- {sentence}")
+        st.markdown(
+            '<ul class="cw-list">'
+            + "".join(f"<li>{_escape(sentence)}</li>" for sentence in sentences)
+            + "</ul>",
+            unsafe_allow_html=True,
+        )

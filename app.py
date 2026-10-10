@@ -346,6 +346,13 @@ with st.expander("Data sources, coverage and limitations", expanded=False):
                 unsafe_allow_html=True)
 
     provider = routes[0].get("provider", "routing service")
+    st.markdown(
+        f'<div class="cw-loading-row" style="border-left:3px solid var(--cw-accent);">'
+        f'<span class="cw-spinner" style="animation:none;"></span>'
+        f"<span>Routing provider actually used for these routes: "
+        f"<strong>{provider}</strong></span></div>",
+        unsafe_allow_html=True,
+    )
     simulated_items = [
         f"Street lighting — {summary['lighting_rows']} simulated records.",
         f"Reported hazards — {summary['hazard_rows']} simulated records.",

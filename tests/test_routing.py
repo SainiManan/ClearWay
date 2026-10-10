@@ -10,7 +10,11 @@ import requests
 
 from src import routing
 from src.geocoding import GeocodingError, geocode
-from src.routing import RoutingError, get_walking_routes
+from src.routing import (
+    RoutingError,
+    describe_provider,
+    get_walking_routes,
+)
 
 ORIGIN = {"lat": 26.9250, "lon": 75.8235}
 DESTINATION = {"lat": 26.9190, "lon": 75.7870}
@@ -260,3 +264,196 @@ def test_geocode_result_without_coordinates_raises(monkeypatch):
     )
     with pytest.raises(GeocodingError, match="missing coordinates"):
         geocode("Jaipur")
+
+
+# ---------------------------------------------------------------------------
+# OpenRouteService provider
+# ---------------------------------------------------------------------------
+
+ORS_GEOJSON = {
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "properties": {
+                "summary": {"distance": 4200.5, "duration": 2900.0},
+                "segments": [],
+            },
+            "geometry": {
+                "type": "LineString",
+                "coordinates": [
+                    [75.8235, 26.9250],
+                    [75.8000, 26.9200],
+                    [75.7870, 26.9190],
+                ],
+            },
+        }
+    ],
+}
+
+TEST_KEY = "test-key-not-real"
+
+
+def _patch_post(monkeypatch, response=None, exc=None, status=200):
+    def fake_post(*args, **kwargs):
+        if exc is not None:
+            raise exc
+        # FakeResponse takes status_code first, payload second.
+        return FakeResponse(status_code=status, payload=response)
+
+    monkeypatch.setattr(routing.requests, "post", fake_post)
+
+
+def _no_key(monkeypatch):
+    monkeypatch.setattr(routing, "get_routing_api_key", lambda: None)
+
+
+@pytest.fixture
+def ors_key(monkeypatch):
+    monkeypatch.setattr(routing, "get_routing_api_key", lambda: TEST_KEY)
+
+
+def test_parses_ors_geojson_feature():
+    route = routing._parse_ors_feature(ORS_GEOJSON["features"][0], "route_a")
+
+    assert route["distance_m"] == pytest.approx(4200.5)
+    assert route["duration_s"] == pytest.approx(2900.0)
+    # [lon, lat] in, [lat, lon] out.
+    assert route["geometry"][0] == [26.9250, 75.8235]
+    # Provider and attribution are stamped by _finalise, not the parser.
+    assert route["route_id"] == "route_a"
+    assert set(route) >= {"distance_m", "duration_s", "geometry", "provider"}
+
+
+def test_ors_rejects_missing_geometry():
+    bad = {"properties": {"summary": {"distance": 1, "duration": 1}},
+           "geometry": {}}
+    with pytest.raises(RoutingError, match="without geometry"):
+        routing._parse_ors_feature(bad, "route_a")
+
+
+def test_ors_rejects_missing_summary():
+    bad = {"properties": {}, "geometry": {"type": "LineString",
+           "coordinates": [[75.8, 26.9], [75.7, 26.8]]}}
+    with pytest.raises(RoutingError, match="without distance or duration"):
+        routing._parse_ors_feature(bad, "route_a")
+
+
+def test_ors_used_when_key_present(monkeypatch, ors_key):
+    _patch_post(monkeypatch, ORS_GEOJSON)
+    routes = get_walking_routes(ORIGIN, DESTINATION, api_key=TEST_KEY)
+
+    assert len(routes) == 1
+    assert routes[0]["provider"] == "OpenRouteService"
+    assert routes[0]["distance_m"] == pytest.approx(4200.5)
+
+
+def test_ors_rejected_key_surfaces_the_error(monkeypatch, ors_key):
+    _patch_post(monkeypatch, status=401)
+    with pytest.raises(RoutingError, match="API key was rejected"):
+        get_walking_routes(ORIGIN, DESTINATION, api_key=TEST_KEY)
+
+
+def test_ors_rate_limit_surfaces_the_error(monkeypatch, ors_key):
+    _patch_post(monkeypatch, status=429)
+    with pytest.raises(RoutingError, match="rate limit"):
+        get_walking_routes(ORIGIN, DESTINATION, api_key=TEST_KEY)
+
+
+def test_ors_http_error(monkeypatch, ors_key):
+    _patch(monkeypatch, exc=requests.ConnectionError("osm down too"))
+    _patch_post(monkeypatch, status=500)
+    with pytest.raises(RoutingError, match="HTTP 500"):
+        get_walking_routes(ORIGIN, DESTINATION, api_key=TEST_KEY)
+
+
+def test_ors_timeout(monkeypatch, ors_key):
+    _patch(monkeypatch, exc=requests.ConnectionError("osm down too"))
+    _patch_post(monkeypatch, exc=requests.Timeout())
+    with pytest.raises(RoutingError, match="timed out"):
+        get_walking_routes(ORIGIN, DESTINATION, api_key=TEST_KEY)
+
+
+def test_ors_no_routes(monkeypatch, ors_key):
+    _patch(monkeypatch, exc=requests.ConnectionError("osm down too"))
+    _patch_post(monkeypatch, {"type": "FeatureCollection", "features": []})
+    with pytest.raises(RoutingError, match="No walking route"):
+        get_walking_routes(ORIGIN, DESTINATION, api_key=TEST_KEY)
+
+
+def test_ors_unsupported_shape_is_rejected(monkeypatch, ors_key):
+    _patch(monkeypatch, exc=requests.ConnectionError("osm down too"))
+    _patch_post(monkeypatch, {"routes": [{"summary": {}, "geometry": "encoded"}]})
+    with pytest.raises(RoutingError, match="response shape"):
+        get_walking_routes(ORIGIN, DESTINATION, api_key=TEST_KEY)
+
+
+def test_ors_falls_back_to_osm_on_network_failure(monkeypatch, ors_key):
+    """A transient ORS outage should degrade to the keyless provider."""
+    _patch_post(monkeypatch, exc=requests.ConnectionError("ors down"))
+    _patch(monkeypatch, FakeResponse(payload=OK_PAYLOAD))
+
+    routes = get_walking_routes(ORIGIN, DESTINATION, api_key=TEST_KEY)
+
+    assert routes[0]["provider"] == "OpenStreetMap routed-foot"
+    assert "OpenRouteService was unavailable" in routes[0]["provider_note"]
+
+
+def test_osm_used_when_no_key(monkeypatch):
+    _no_key(monkeypatch)
+    _patch(monkeypatch, FakeResponse(payload=OK_PAYLOAD))
+
+    routes = get_walking_routes(ORIGIN, DESTINATION)
+    assert routes[0]["provider"] == "OpenStreetMap routed-foot"
+
+
+def test_sends_authorisation_header(monkeypatch, ors_key):
+    seen = {}
+
+    def fake_post(*args, **kwargs):
+        seen.update(kwargs.get("headers", {}))
+        return FakeResponse(ORS_GEOJSON)
+
+    monkeypatch.setattr(routing.requests, "post", fake_post)
+    get_walking_routes(ORIGIN, DESTINATION, api_key=TEST_KEY)
+
+    assert seen["Authorization"] == TEST_KEY
+
+
+def test_requests_geojson_not_polyline(monkeypatch, ors_key):
+    seen = {}
+
+    def fake_post(*args, **kwargs):
+        seen.update(kwargs.get("headers", {}))
+        return FakeResponse(ORS_GEOJSON)
+
+    monkeypatch.setattr(routing.requests, "post", fake_post)
+    get_walking_routes(ORIGIN, DESTINATION, api_key=TEST_KEY)
+
+    assert "geo+json" in seen["Accept"]
+
+
+def test_coordinates_still_validated_before_provider_choice(monkeypatch, ors_key):
+    with pytest.raises(RoutingError):
+        get_walking_routes({"lat": "x", "lon": 0}, DESTINATION, api_key=TEST_KEY)
+
+
+def test_describe_provider_reports_the_active_one(monkeypatch, ors_key):
+    assert describe_provider() == "OpenRouteService (API key configured)"
+
+    _no_key(monkeypatch)
+    assert "no API key" in describe_provider()
+
+
+def test_api_key_read_from_environment(monkeypatch):
+    monkeypatch.setenv("OPENROUTESERVICE_API_KEY", "env-key")
+    monkeypatch.setattr(
+        routing, "_streamlit_secret_key", lambda: None
+    )
+    assert routing.get_routing_api_key() == "env-key"
+
+
+def test_api_key_absent_returns_none(monkeypatch):
+    monkeypatch.delenv("OPENROUTESERVICE_API_KEY", raising=False)
+    monkeypatch.setattr(routing, "_streamlit_secret_key", lambda: None)
+    assert routing.get_routing_api_key() is None

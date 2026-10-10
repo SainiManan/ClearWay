@@ -12,3 +12,9 @@ data/.cache/
 # Tooling directories (not part of the project)
 .agents/
 .claude/
+
+# Local Streamlit secrets must never be committed
+.streamlit/secrets.toml
+
+# Local Streamlit secrets must never be committed
+.streamlit/secrets.toml

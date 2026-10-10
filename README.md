@@ -69,6 +69,55 @@ queried twice.
   backed by real data. Otherwise the app says why.
 - An absence of hazard reports is not evidence that a route is safe.
 
+## Deployment
+
+**Streamlit Community Cloud** is the supported target. Vercel will not work —
+it is stateless serverless, while Streamlit needs a persistent Python process
+holding a WebSocket for the whole session.
+
+### The routing provider problem (important)
+
+Two providers are supported, selected automatically:
+
+| Provider | Where it works | Key |
+|---|---|---|
+| OpenRouteService | cloud and local | required (free, instant) |
+| OpenStreetMap routed-foot | local only | none |
+
+`routing.openstreetmap.de` is a donated community service that **refuses
+connections from datacentre IP ranges**. It works perfectly from a home
+connection, which is why the app runs on localhost but fails on Streamlit
+Cloud with `Connection refused`. Geocoding keeps working there because
+Nominatim accepts cloud IPs, which makes the failure look like a routing bug
+rather than a provider restriction.
+
+**To deploy:** sign up free at [openrouteservice.org](https://openrouteservice.org/)
+(no credit card), then add the key in Streamlit Cloud under
+**Settings → Secrets**:
+
+```toml
+OPENROUTESERVICE_API_KEY = "your-key-here"
+```
+
+Locally, export it or put it in a `.env`:
+
+```bash
+export OPENROUTESERVICE_API_KEY="your-key-here"
+```
+
+The app names the provider it actually used in the
+"Data sources, coverage and limitations" panel, so a deployment can never
+silently claim a provider it is not using. A template lives at
+`.streamlit/secrets.toml.example`; the real secrets file is git-ignored.
+
+### Unknown risk to check after deploying
+
+Overpass (`overpass-api.de`), used for the real pedestrian-infrastructure
+factor, is also a community service and may reject cloud IPs in the same way.
+If it does, that factor degrades to "unavailable" and coverage drops to 65%
+rather than the app failing — but confirm it after deploying, because the
+failure was never observed from a cloud host.
+
 ## Design
 
 Two layers, deliberately separated:
